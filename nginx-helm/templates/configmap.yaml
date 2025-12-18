@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-html
+data:
+  index.html: |
+{{ .Files.Get "dashboard.html" | indent 4 }}
