@@ -4,4 +4,192 @@ metadata:
   name: {{ .Chart.Name }}-html
 data:
   index.html: |
-{{ .Files.Get "dashboard.html" | indent 4 }}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ .Release.Name }} - Dashboard</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f3f4f6; color: #333; padding: 20px; }
+            .container { max-width: 1400px; margin: 0 auto; }
+            
+            /* Header Style */
+            header { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+            h1 { color: #0d374a; font-size: 1.5em; display: flex; align-items: center; gap: 10px; }
+            
+            /* ArgoCD Style Info Panel */
+            .info-panel { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 20px; }
+            .info-header { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+            .info-title { font-weight: bold; color: #0d374a; }
+            
+            .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+            .info-item { display: flex; flex-direction: column; }
+            .info-label { font-size: 0.85em; color: #666; margin-bottom: 4px; text-transform: uppercase; }
+            .info-value { font-weight: 600; font-size: 0.95em; color: #333; word-break: break-all; }
+            
+            .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: bold; }
+            .status-synced { background-color: #e6f4ea; color: #1e7e34; }
+            .status-healthy { background-color: #e6f4ea; color: #1e7e34; }
+
+            /* Metrics Grid */
+            .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
+            .metric-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
+            .metric-val { font-size: 2em; font-weight: bold; color: #667eea; }
+            .metric-lbl { color: #888; font-size: 0.9em; }
+
+            /* Charts */
+            .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .chart-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+            /* Table Style */
+            .table-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { text-align: left; padding: 12px; background: #f8f9fa; color: #666; font-size: 0.9em; border-bottom: 2px solid #eee; }
+            td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9em; }
+            tr:hover { background-color: #f8f9fa; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1><i class="fa-solid fa-layer-group"></i> {{ .Release.Name }}</h1>
+                <div style="color: #666; font-size: 0.9em;">Last Sync: <span id="update-time">-</span></div>
+            </header>
+
+            <!-- ArgoCD-like Info Panel -->
+            <div class="info-panel">
+                <div class="info-header">
+                    <div class="info-title">Application Details</div>
+                    <div style="font-size: 0.9em; color: #666;">Items per page: 10 | Sort: name</div>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Project</span>
+                        <span class="info-value">default</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Status</span>
+                        <div class="info-value">
+                            <span class="status-badge status-healthy"><i class="fa-solid fa-heart"></i> Healthy</span>
+                            <span class="status-badge status-synced"><i class="fa-solid fa-check"></i> Synced</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Namespace</span>
+                        <span class="info-value">{{ .Release.Namespace }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Repository</span>
+                        <span class="info-value"><a href="https://github.com/aleuphoria/nginx-argocd-demo" target="_blank">aleuphoria/nginx-argocd-demo</a></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Image Tag</span>
+                        <span class="info-value">{{ .Values.image.tag }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Revision</span>
+                        <span class="info-value">Rev: {{ .Release.Revision }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fake Real-time Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-val" id="cpu-val">0%</div>
+                    <div class="metric-lbl">CPU Usage</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-val" id="mem-val">0 MB</div>
+                    <div class="metric-lbl">Memory Usage</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-val" id="req-val">0</div>
+                    <div class="metric-lbl">Requests/sec</div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="charts-row">
+                <div class="chart-card">
+                    <h3>Resource Consumption</h3>
+                    <canvas id="liveChart"></canvas>
+                </div>
+                
+                <!-- Table Section -->
+                <div class="table-card">
+                    <h3>Container Images</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Container Name</th>
+                                <th>Image</th>
+                                <th>Pull Policy</th>
+                                <th>Port</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>nginx</td>
+                                <td>{{ .Values.image.repository }}:{{ .Values.image.tag }}</td>
+                                <td>{{ .Values.image.pullPolicy }}</td>
+                                <td>80/TCP</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Эмуляция данных
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(20).fill(''),
+                    datasets: [{
+                        label: 'CPU %',
+                        data: Array(20).fill(0),
+                        borderColor: '#667eea',
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)'
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    animation: false,
+                    scales: { y: { min: 0, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            function updateDashboard() {
+                // Generate random metrics
+                const cpu = Math.floor(Math.random() * 30) + 10;
+                const mem = Math.floor(Math.random() * 50) + 120;
+                const req = Math.floor(Math.random() * 100) + 800;
+
+                // Update text
+                document.getElementById('cpu-val').innerText = cpu + '%';
+                document.getElementById('mem-val').innerText = mem + ' MB';
+                document.getElementById('req-val').innerText = req;
+                document.getElementById('update-time').innerText = new Date().toLocaleTimeString();
+
+                // Update chart
+                const data = chart.data.datasets[0].data;
+                data.shift();
+                data.push(cpu);
+                chart.update();
+            }
+
+            setInterval(updateDashboard, 2000);
+            updateDashboard();
+        </script>
+    </body>
+    </html>
